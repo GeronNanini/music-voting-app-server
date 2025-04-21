@@ -1,11 +1,10 @@
-import { doc, setDoc, collection, getDocs, getDoc, updateDoc } from 'firebase/firestore';
 import db from '../firebase.js';
 import calculateBordaCount from '../utils/bordaCount.js';
 
 // Utility function for fetching data from Firestore
 const fetchDataFromCollection = async (collectionName) => {
   try {
-    const snapshot = await getDocs(collection(db, collectionName));
+    const snapshot = await db.getDocs(db.collection(collectionName));
     return snapshot.docs.map(doc => doc.data());
   } catch (err) {
     throw new Error(`Error fetching from ${collectionName}: ${err.message}`);
@@ -46,14 +45,14 @@ export const submitVote = async (req, res) => {
   }
 
   try {
-    const userVoteRef = doc(db, 'votes', user);
-    const existingVote = await getDoc(userVoteRef);
+    const userVoteRef = db.doc('votes', user);
+    const existingVote = await db.getDoc(userVoteRef);
 
     if (existingVote.exists()) {
-      await updateDoc(userVoteRef, { songs });
+      await db.updateDoc(userVoteRef, { songs });
       res.status(200).json({ message: 'Vote updated successfully!' });
     } else {
-      await setDoc(userVoteRef, { songs });
+      await db.setDoc(userVoteRef, { songs });
       res.status(200).json({ message: 'Vote submitted successfully!' });
     }
   } catch (err) {
@@ -84,7 +83,7 @@ export const submitInitial = async (req, res) => {
 
   try {
     const existingSongs = new Set();
-    const snapshot = await getDocs(collection(db, 'initialSubmissions'));
+    const snapshot = await db.getDocs(db.collection('initialSubmissions'));
 
     snapshot.forEach(doc => {
       if (doc.id !== user) {
@@ -105,7 +104,7 @@ export const submitInitial = async (req, res) => {
       });
     }
 
-    await setDoc(doc(db, 'initialSubmissions', user), { songs });
+    await db.setDoc(db.doc('initialSubmissions', user), { songs });
     res.status(200).json({ message: 'Successfully submitted songs!' });
   } catch (err) {
     console.error('Error submitting initial songs:', err);
@@ -116,7 +115,7 @@ export const submitInitial = async (req, res) => {
 // Get aggregated unique songs
 export const getAggregatedSongs = async (req, res) => {
   try {
-    const snapshot = await getDocs(collection(db, 'initialSubmissions'));
+    const snapshot = await db.getDocs(db.collection('initialSubmissions'));
     const songSet = new Set();
 
     snapshot.forEach(doc => {
@@ -153,8 +152,8 @@ export const submitFinalVote = async (req, res) => {
   }
 
   try {
-    const userRef = doc(db, 'finalVotes', user);
-    await setDoc(userRef, { songs });
+    const userRef = db.doc('finalVotes', user);
+    await db.setDoc(userRef, { songs });
     res.status(200).json({ message: 'Final vote submitted with ranks!' });
   } catch (err) {
     console.error('Error submitting final vote:', err);
@@ -171,7 +170,7 @@ export const checkIfSongExists = async (req, res) => {
   }
 
   try {
-    const snapshot = await getDocs(collection(db, 'initialSubmissions'));
+    const snapshot = await db.getDocs(db.collection('initialSubmissions'));
     const lowerTitle = title.toLowerCase();
 
     const exists = snapshot.docs.some(doc =>
@@ -197,8 +196,8 @@ export const getNominatedSongs = async (req, res) => {
   }
 
   try {
-    const userRef = doc(db, 'initialSubmissions', user);
-    const userDoc = await getDoc(userRef);
+    const userRef = db.doc('initialSubmissions', user);
+    const userDoc = await db.getDoc(userRef);
 
     if (!userDoc.exists()) {
       return res.status(200).json({ songs: [] });
@@ -219,8 +218,8 @@ export const getFinalVote = async (req, res) => {
   if (!user) return res.status(400).json({ message: 'User is required.' });
 
   try {
-    const userRef = doc(db, 'finalVotes', user);
-    const userDoc = await getDoc(userRef);
+    const userRef = db.doc('finalVotes', user);
+    const userDoc = await db.getDoc(userRef);
 
     if (!userDoc.exists()) {
       return res.status(200).json({ songs: [] });
